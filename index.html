@@ -1,0 +1,226 @@
+<title>CCA-F 進捗ダッシュボード</title>
+<style>
+
+:root {
+  --surface:#F5F6F9; --card:#FFFFFF; --ink:#1C2536; --sub:#5C6678; --line:#E3E6EE;
+  --accent:#3B55C4; --accent-soft:#E7EBFA; --ok:#1E7F4F; --ok-soft:#E2F2E9;
+  --ng:#C2403B; --ng-soft:#F9E7E6; --due:#B07C1F; --due-soft:#F7EEDC;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --surface:#12161F; --card:#1B2230; --ink:#E7EBF4; --sub:#98A2B6; --line:#2A3245;
+  --accent:#5D74D8; --accent-soft:#232C4A; --ok:#3A9A6D; --ok-soft:#1B3128;
+  --ng:#C95F5B; --ng-soft:#3A2323; --due:#A9843C; --due-soft:#332B18;
+} }
+:root[data-theme="light"] {
+  --surface:#F5F6F9; --card:#FFFFFF; --ink:#1C2536; --sub:#5C6678; --line:#E3E6EE;
+  --accent:#3B55C4; --accent-soft:#E7EBFA; --ok:#1E7F4F; --ok-soft:#E2F2E9;
+  --ng:#C2403B; --ng-soft:#F9E7E6; --due:#B07C1F; --due-soft:#F7EEDC;
+}
+:root[data-theme="dark"] {
+  --surface:#12161F; --card:#1B2230; --ink:#E7EBF4; --sub:#98A2B6; --line:#2A3245;
+  --accent:#5D74D8; --accent-soft:#232C4A; --ok:#3A9A6D; --ok-soft:#1B3128;
+  --ng:#C95F5B; --ng-soft:#3A2323; --due:#A9843C; --due-soft:#332B18;
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--surface); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Noto Sans JP",sans-serif;
+  line-height:1.6; -webkit-font-smoothing:antialiased; }
+.wrap { max-width:660px; margin:0 auto; padding:16px 16px 48px; display:flex; flex-direction:column; gap:14px; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; }
+.eyebrow { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--sub); font-weight:600; }
+.chip { display:inline-block; font-size:12px; font-weight:600; padding:2px 10px; border-radius:999px;
+  background:var(--accent-soft); color:var(--accent); }
+button { font:inherit; cursor:pointer; }
+button:focus-visible, a:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+@media (prefers-reduced-motion: reduce) { * { transition:none !important; animation:none !important; } }
+.num { font-variant-numeric:tabular-nums; }
+
+.grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+.tile { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 10px; text-align:center; }
+.tile .v { font-size:24px; font-weight:750; line-height:1.2; }
+.tile .k { font-size:11px; color:var(--sub); font-weight:600; }
+.hero { display:flex; gap:16px; align-items:center; }
+.ring { flex:0 0 128px; }
+.ring text.rv { font-size:30px; font-weight:750; fill:var(--ink); }
+.ring text.ru { font-size:10px; fill:var(--sub); font-weight:600; }
+.hero-right { flex:1; min-width:0; }
+.hero-right .cd { font-size:14px; color:var(--sub); font-weight:600; }
+.hero-right .cd b { font-size:22px; color:var(--ink); }
+.milestones { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+.ms { font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; border:1px solid var(--line); color:var(--sub); }
+.ms.done { background:var(--ok-soft); color:var(--ok); border-color:transparent; }
+.formula { font-size:11px; color:var(--sub); margin-top:8px; }
+.pill { display:inline-block; font-size:11px; font-weight:800; letter-spacing:.05em; padding:3px 10px; border-radius:999px; }
+.pill.ok { background:var(--ok-soft); color:var(--ok); }
+.pill.ng { background:var(--ng-soft); color:var(--ng); }
+.pill.warn { background:var(--due-soft); color:var(--due); }
+.actions { display:flex; flex-direction:column; gap:10px; margin-top:10px; }
+.action { display:flex; gap:10px; align-items:center; border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
+.action .n { flex:0 0 22px; height:22px; border-radius:50%; background:var(--accent-soft); color:var(--accent);
+  font-weight:800; font-size:12px; display:flex; align-items:center; justify-content:center; }
+.action .body { flex:1; min-width:0; }
+.action .t { font-weight:700; font-size:14px; }
+.action .d { font-size:12px; color:var(--sub); }
+.action .impact { flex:0 0 auto; text-align:right; }
+.action .impact .pt { font-weight:800; color:var(--accent); font-size:14px; }
+.action .impact .min { font-size:11px; color:var(--sub); }
+.abtn { display:inline-block; font-size:12px; font-weight:700; text-decoration:none; padding:4px 10px;
+  border-radius:8px; background:var(--accent); color:#fff; margin-top:4px; }
+.abtn.ghost { background:var(--accent-soft); color:var(--accent); }
+.pace-line { font-size:14px; margin-top:8px; }
+.pace-nums { display:flex; gap:18px; margin-top:8px; font-size:13px; color:var(--sub); }
+.pace-nums b { color:var(--ink); font-size:16px; }
+.burnup svg { width:100%; height:auto; display:block; }
+.domrow { display:grid; grid-template-columns:2.6em 1fr 3.2em; align-items:center; gap:10px; margin-top:10px; }
+.domrow .lab { font-weight:700; font-size:13px; }
+.bar { height:14px; background:var(--line); border-radius:4px; overflow:hidden; }
+.bar > div { height:100%; background:var(--accent); border-radius:4px 0 0 4px; }
+.bar > div.full { border-radius:4px; }
+.pct { font-size:13px; color:var(--sub); text-align:right; }
+.stchips { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.st { font-size:11.5px; font-weight:600; padding:3px 8px; border-radius:6px; border:1px solid var(--line); color:var(--sub); }
+.st.l3 { background:var(--accent-soft); color:var(--accent); border-color:transparent; }
+.st.l4 { background:var(--ok-soft); color:var(--ok); border-color:transparent; }
+.trend { display:flex; align-items:flex-end; gap:3px; height:72px; margin-top:10px; }
+.tcol { flex:1; display:flex; flex-direction:column; justify-content:flex-end; gap:2px; height:100%; }
+.tcol .ok { background:var(--accent); border-radius:3px 3px 0 0; }
+.tcol .ng { background:var(--line); border-radius:2px; }
+.tlabels { display:flex; gap:3px; margin-top:4px; }
+.tlabels span { flex:1; text-align:center; font-size:9.5px; color:var(--sub); }
+.duelist { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+.due-item { display:flex; gap:10px; align-items:baseline; font-size:14px; }
+.due-badge { font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; background:var(--card);
+  border:1px solid var(--line); color:var(--sub); flex:0 0 auto; }
+.due-item.due-now .due-badge { background:var(--due-soft); color:var(--due); border-color:transparent; }
+.empty { color:var(--sub); font-size:14px; }
+.legend { display:flex; gap:14px; font-size:11.5px; color:var(--sub); margin-top:6px; }
+.legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:4px; vertical-align:-1px; }
+footer { color:var(--sub); font-size:12px; text-align:center; }
+footer a { color:var(--accent); }
+</style>
+<div class="wrap">
+  <div>
+    <span class="eyebrow">CCA-F Study Dashboard</span>
+    <div class="topline" style="display:flex; justify-content:space-between; align-items:baseline;">
+      <h1 style="font-size:22px; margin:2px 0;">合格までの現在地</h1>
+      <span class="eyebrow num" id="today-label">2026-07-05</span>
+    </div>
+  </div>
+
+  <div class="card hero">
+    <svg class="ring" viewBox="0 0 120 120" role="img" aria-label="合格準備度 15 ポイント">
+      <circle cx="60" cy="60" r="52" fill="none" stroke="var(--line)" stroke-width="11"/>
+      <circle cx="60" cy="60" r="52" fill="none" stroke="var(--accent)" stroke-width="11"
+        stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="276.4"
+        transform="rotate(-90 60 60)"/>
+      <text class="rv num" x="60" y="60" text-anchor="middle" dominant-baseline="central">15</text>
+      <text class="ru" x="60" y="80" text-anchor="middle">/100 pt</text>
+    </svg>
+    <div class="hero-right">
+      <span class="eyebrow">合格準備度</span>
+      <div class="cd num" id="countdown">目標日まで <b id="days-left">30</b> 日</div>
+      <div class="milestones"><span class="ms">25pt</span><span class="ms">50pt</span><span class="ms">75pt</span><span class="ms">100pt</span></div>
+      <div class="formula">= Σ 配点% × ドメイン習熟度（Lv0=0 → Lv3=0.7 → Lv5=1.0 の平均）</div>
+    </div>
+  </div>
+
+  <div class="grid3">
+    <div class="tile"><div class="v num" id="streak">—</div><div class="k">連続学習日数</div></div>
+    <div class="tile"><div class="v num">20</div><div class="k">累計解答数</div></div>
+    <div class="tile"><div class="v num">65%</div><div class="k">全期間正答率</div></div>
+  </div>
+
+  <div class="card">
+    <span class="eyebrow">次の一手（効果の大きい順）</span>
+    <div class="actions"><div class="action"><span class="n num">1</span><div class="body"><div class="t">D3 クイズ 7問で新規開拓</div><div class="d">Claude Code の設定とワークフロー（残り6項目）</div><a class="abtn" href="https://claude.ai/code/artifact/90ef0de5-d201-437b-92c6-809e421edcd1">▶ 今すぐ演習</a></div><div class="impact"><div class="pt num">+14.0pt</div><div class="min num">≈14分</div></div></div><div class="action"><span class="n num">2</span><div class="body"><div class="t">D3 音声概要を聴く（Lv0→1）</div><div class="d">通勤・ながらでOK · Claude Code の設定とワークフロー</div><a class="abtn ghost" href="https://notebooklm.google.com/notebook/17a20946-16ab-4391-8c65-49ed42145e0a">🎧 NotebookLM</a></div><div class="impact"><div class="pt num">+4.0pt</div><div class="min num">≈30分</div></div></div></div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <span class="eyebrow">ペース判定</span>
+      <span class="pill ng">BEHIND</span>
+    </div>
+    <p class="pace-line">このペースだと全項目到達は 8/9（目標日を 5 日超過）。今日の1セットで挽回を。</p>
+    <div class="pace-nums num">
+      <span>必要ペース <b>0.8</b> 項目/日</span>
+      <span>実績ペース(7日) <b>0.7</b> 項目/日</span>
+    </div>
+  </div>
+
+  <div class="card burnup">
+    <span class="eyebrow">網羅率の軌跡 — 理想線に勝て</span>
+    <svg viewBox="0 0 340 150" role="img" aria-label="網羅率の実績と理想線"><line x1="30" y1="130.0" x2="294" y2="130.0" stroke="var(--line)" stroke-width="1"/><text x="26" y="133.0" text-anchor="end" font-size="8" fill="var(--sub)" class="num">0</text><line x1="30" y1="100.0" x2="294" y2="100.0" stroke="var(--line)" stroke-width="1"/><text x="26" y="103.0" text-anchor="end" font-size="8" fill="var(--sub)" class="num">25</text><line x1="30" y1="70.0" x2="294" y2="70.0" stroke="var(--line)" stroke-width="1"/><text x="26" y="73.0" text-anchor="end" font-size="8" fill="var(--sub)" class="num">50</text><line x1="30" y1="40.0" x2="294" y2="40.0" stroke="var(--line)" stroke-width="1"/><text x="26" y="43.0" text-anchor="end" font-size="8" fill="var(--sub)" class="num">75</text><line x1="30" y1="10.0" x2="294" y2="10.0" stroke="var(--line)" stroke-width="1"/><text x="26" y="13.0" text-anchor="end" font-size="8" fill="var(--sub)" class="num">100</text><line x1="30.0" y1="130.0" x2="294.0" y2="10.0" stroke="var(--sub)" stroke-width="1.5" stroke-dasharray="5 4" opacity="0.55"/><polyline points="30.0,130.0 38.5,109.6" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/><circle cx="38.5" cy="109.6" r="4" fill="var(--accent)"/><text x="44.5" y="103.6" font-size="9" font-weight="700" fill="var(--accent)" class="num">今 17%</text><text x="30" y="146" font-size="8" fill="var(--sub)" class="num">7/4</text><text x="294" y="146" text-anchor="end" font-size="8" fill="var(--sub)" class="num">8/4 目標</text></svg>
+    <div class="legend"><span><i style="background:var(--accent)"></i>実績</span><span><i style="background:var(--sub); opacity:.5"></i>理想線（目標日に100%）</span></div>
+  </div>
+
+  <div class="card">
+    <span class="eyebrow">ドメイン別網羅率（配点順）</span>
+    <div class="domrow"><span class="lab">D1 <span style="color:var(--sub); font-weight:500">27%</span></span><div class="bar"><div class="" style="width:43%"></div></div><span class="pct num">43%</span></div><div class="domrow"><span class="lab">D3 <span style="color:var(--sub); font-weight:500">20%</span></span><div class="bar"><div class="" style="width:0%"></div></div><span class="pct num">0%</span></div><div class="domrow"><span class="lab">D4 <span style="color:var(--sub); font-weight:500">20%</span></span><div class="bar"><div class="" style="width:0%"></div></div><span class="pct num">0%</span></div><div class="domrow"><span class="lab">D2 <span style="color:var(--sub); font-weight:500">18%</span></span><div class="bar"><div class="" style="width:40%"></div></div><span class="pct num">40%</span></div><div class="domrow"><span class="lab">D5 <span style="color:var(--sub); font-weight:500">15%</span></span><div class="bar"><div class="" style="width:0%"></div></div><span class="pct num">0%</span></div>
+  </div>
+
+  <div class="card">
+    <span class="eyebrow">正答率トレンド（14日）</span>
+    <div class="trend" role="img" aria-label="日別の正答・誤答数"><div class="tcol" title="2026-06-22: 正答0 誤答0"></div><div class="tcol" title="2026-06-23: 正答0 誤答0"></div><div class="tcol" title="2026-06-24: 正答0 誤答0"></div><div class="tcol" title="2026-06-25: 正答0 誤答0"></div><div class="tcol" title="2026-06-26: 正答0 誤答0"></div><div class="tcol" title="2026-06-27: 正答0 誤答0"></div><div class="tcol" title="2026-06-28: 正答0 誤答0"></div><div class="tcol" title="2026-06-29: 正答0 誤答0"></div><div class="tcol" title="2026-06-30: 正答0 誤答0"></div><div class="tcol" title="2026-07-01: 正答0 誤答0"></div><div class="tcol" title="2026-07-02: 正答0 誤答0"></div><div class="tcol" title="2026-07-03: 正答0 誤答0"></div><div class="tcol" title="2026-07-04: 正答0 誤答0"></div><div class="tcol" title="2026-07-05: 正答13 誤答7"><div class="ng" style="height:22px"></div><div class="ok" style="height:42px"></div></div></div>
+    <div class="tlabels"><span>22</span><span></span><span></span><span></span><span></span><span></span><span></span><span>29</span><span></span><span>1</span><span></span><span></span><span></span><span>5</span></div>
+    <div class="legend"><span><i style="background:var(--accent)"></i>正答</span><span><i style="background:var(--line)"></i>誤答</span></div>
+  </div>
+
+  <div class="card">
+    <span class="eyebrow">復習キュー（間隔反復・<span id="due-count">0</span>件が今日期日）</span>
+    <div class="duelist"><div class="due-item" data-date="2026-07-06"><span class="due-badge num">予定</span><span><b>D1-3</b> サブエージェントの起動・コンテキスト受け渡し・スポーン設定。Taskツール(allowedTools要件)、明示的コンテキスト受け渡し、AgentDefinition、fork_sessionによる分岐探索、並列起動。</span></div><div class="due-item" data-date="2026-07-06"><span class="due-badge num">予定</span><span><b>D1-1</b> 自律的タスク実行のためのエージェンティックループ設計。stop_reason('tool_use'/'end_turn')での制御、ツール結果の履歴追加。アンチパターン(自然言語判定・反復上限を主停止条件・テキスト内容判定)を避ける。</span></div><div class="due-item" data-date="2026-07-06"><span class="due-badge num">予定</span><span><b>D1-5</b> Agent SDK フックによるツール呼び出し傍受とデータ正規化。PostToolUseでの結果変換、ツール呼び出し傍受によるルール強制(例:閾値超の払い戻しブロック)、hooksは決定的保証を与える。</span></div><div class="due-item" data-date="2026-07-08"><span class="due-badge num">予定</span><span><b>D1-2</b> コーディネーター/サブエージェントによるマルチエージェント編成。hub-and-spoke構成、サブエージェントのコンテキスト分離、動的なサブエージェント選択、分解が狭すぎるリスク。</span></div><div class="due-item" data-date="2026-07-12"><span class="due-badge num">予定</span><span><b>D2-4</b> MCPサーバーをClaude Code/エージェントワークフローに統合。プロジェクトスコープ(.mcp.json) vs ユーザースコープ(~/.claude.json)、環境変数展開による認証情報管理、リソースによるカタログ公開。</span></div></div>
+  </div>
+
+  <div class="card">
+    <span class="eyebrow">Task Statement 網羅マップ</span>
+    <div class="legend"><span><i style="background:var(--accent-soft)"></i>Lv3 正答可</span><span><i style="background:var(--ok-soft)"></i>Lv4+ 定着</span><span><i style="background:var(--card); border:1px solid var(--line)"></i>未達</span></div>
+    <div class="stchips"><span class="st" title="自律的タスク実行のためのエージェンティックループ設計。stop_reason('tool_use'/'end_turn')での制御、ツール結果の履歴追加。アンチパターン(自然言語判定・反復上限を主停止条件・テキスト内容判定)を避ける。 (Lv2)">D1-1</span><span class="st l3" title="コーディネーター/サブエージェントによるマルチエージェント編成。hub-and-spoke構成、サブエージェントのコンテキスト分離、動的なサブエージェント選択、分解が狭すぎるリスク。 (Lv3)">D1-2</span><span class="st" title="サブエージェントの起動・コンテキスト受け渡し・スポーン設定。Taskツール(allowedTools要件)、明示的コンテキスト受け渡し、AgentDefinition、fork_sessionによる分岐探索、並列起動。 (Lv0)">D1-3</span><span class="st" title="強制付きマルチステップワークフローとハンドオフ設計。プログラム的強制(hooks/前提条件ゲート) vs プロンプト誘導の対比、決定的コンプライアンスが必要な場面、構造化エスカレーション引き継ぎ。 (Lv0)">D1-4</span><span class="st" title="Agent SDK フックによるツール呼び出し傍受とデータ正規化。PostToolUseでの結果変換、ツール呼び出し傍受によるルール強制(例:閾値超の払い戻しブロック)、hooksは決定的保証を与える。 (Lv0)">D1-5</span><span class="st l3" title="複雑なワークフローのタスク分解戦略。固定的な逐次パイプライン(prompt chaining) vs 動的適応分解の使い分け。ファイル別+横断統合パスの分割など。 (Lv3)">D1-6</span><span class="st l3" title="セッション状態・再開・フォークの管理。--resumeによる名前付き再開、fork_sessionによる並行探索分岐、再開時のファイル変更通知、要約による新規開始 vs 再開の使い分け。 (Lv3)">D1-7</span></div><div class="stchips"><span class="st l4" title="明確な説明と境界を持つ効果的なツールインターフェース設計。ツール説明はLLMのツール選択の主要な手がかり。入力形式・例・エッジケース・境界を明記。曖昧/重複した説明は誤選択を招く。 (Lv4)">D2-1</span><span class="st" title="MCPツールの構造化エラー応答実装。isErrorフラグ、一時的/検証/ビジネス/権限エラーの区別、画一的エラーの弊害、リトライ可否メタデータ。 (Lv0)">D2-2</span><span class="st" title="エージェント間の適切なツール分配とtool_choice設定。ツール過多は選択精度を下げる、専門外ツールの誤用リスク、役割別スコープ、tool_choiceの3種(auto/any/強制)。 (Lv0)">D2-3</span><span class="st l3" title="MCPサーバーをClaude Code/エージェントワークフローに統合。プロジェクトスコープ(.mcp.json) vs ユーザースコープ(~/.claude.json)、環境変数展開による認証情報管理、リソースによるカタログ公開。 (Lv3)">D2-4</span><span class="st" title="組み込みツール(Read/Write/Edit/Bash/Grep/Glob)の適切な使い分け。Grep=内容検索、Glob=パス一致、Edit失敗時のRead+Writeフォールバック、段階的なコードベース理解。 (Lv0)">D2-5</span></div><div class="stchips"><span class="st" title="CLAUDE.mdの階層・スコープ・モジュール構成。ユーザー/プロジェクト/ディレクトリ階層、@import構文、.claude/rules/への分割、/memoryコマンドでの確認。 (Lv0)">D3-1</span><span class="st" title="カスタムスラッシュコマンドとスキルの作成・設定。プロジェクト/ユーザースコープのコマンド、SKILL.mdのfrontmatter(context: fork, allowed-tools, argument-hint)、skills vs CLAUDE.mdの使い分け。 (Lv0)">D3-2</span><span class="st" title="パス指定ルールによる条件付き規約読み込み。.claude/rules/のYAML frontmatter pathsフィールド(グロブパターン)、該当ファイル編集時のみ読み込み、ディレクトリ横断規約に有利。 (Lv0)">D3-3</span><span class="st" title="plan mode と直接実行の使い分け。複雑・大規模・アーキテクチャ判断はplan mode、単純明快な変更は直接実行、Exploreサブエージェントで探索出力を分離。 (Lv0)">D3-4</span><span class="st" title="段階的改善のための反復的洗練技法。具体的な入出力例、テスト駆動反復、インタビューパターン(実装前に質問させる)、相互作用する問題は一括、独立した問題は逐次。 (Lv0)">D3-5</span><span class="st" title="Claude CodeのCI/CDパイプライン統合。-p(--print)フラグで非対話実行、--output-format json/--json-schemaで構造化出力、CLAUDE.mdでのCI文脈提供、self-review限界と独立レビューインスタンスの必要性。 (Lv0)">D3-6</span></div><div class="stchips"><span class="st" title="偽陽性を減らすための明示的基準によるプロンプト設計。曖昧な指示('保守的に'等)より具体的基準が有効、高偽陽性カテゴリの一時無効化。 (Lv0)">D4-1</span><span class="st" title="出力の一貫性・品質向上のためのfew-shotプロンプティング。曖昧ケースの扱い方を示す例、新規パターンへの汎化、抽出タスクでのハルシネーション削減。 (Lv0)">D4-2</span><span class="st" title="tool useとJSONスキーマによる構造化出力の強制。構文エラーは排除できるが意味エラーは防げない点に注意、tool_choiceの使い分け、nullable設計で捏造防止。 (Lv0)">D4-3</span><span class="st" title="抽出品質向上のための検証・リトライ・フィードバックループ。エラーフィードバック付きリトライ、情報自体が欠落している場合はリトライ無効、detected_patternによる傾向分析。 (Lv0)">D4-4</span><span class="st" title="効率的なバッチ処理戦略設計。Batch APIの特性(50%割引・最大24時間・SLAなし・マルチターン不可)、ブロッキング処理には不適、custom_idでの相関と失敗分の再送。 (Lv0)">D4-5</span><span class="st" title="マルチインスタンス・マルチパスレビュー設計。同一セッションでのself-reviewの限界(自らの推論に引きずられる)、独立インスタンスでのレビューの優位性、ファイル別+横断統合の多段レビュー。 (Lv0)">D4-6</span></div><div class="stchips"><span class="st" title="長い対話での重要情報保持のためのコンテキスト管理。要約による情報損失リスク、'lost in the middle'効果、ツール結果の肥大化、'case facts'ブロックへの事実抽出、出力トリミング。 (Lv0)">D5-1</span><span class="st" title="効果的なエスカレーションと曖昧性解決パターンの設計。適切なトリガー(明示要求/ポリシー欠落/進展不能)、感情分析や自己申告信頼度は複雑さの不確実な代理指標。 (Lv0)">D5-2</span><span class="st" title="マルチエージェントシステム間のエラー伝播戦略実装。構造化エラーコンテキストによるコーディネーターの賢い復旧判断、アクセス失敗と有効な空結果の区別、エラー隠蔽/全停止のアンチパターン回避。 (Lv0)">D5-3</span><span class="st" title="大規模コードベース探索でのコンテキスト管理。長時間セッションでのコンテキスト劣化、scratchpadファイルでの知見保持、サブエージェント委譲による探索出力の分離、/compactの活用。 (Lv0)">D5-4</span><span class="st" title="人間レビューワークフローと信頼度較正の設計。集計精度指標が特定セグメントの低性能を隠す危険、層化ランダムサンプリング、フィールド単位の信頼度較正。 (Lv0)">D5-5</span><span class="st" title="複数ソース統合における情報の出所保持と不確実性の扱い。要約時の出典喪失リスク、主張-出典マッピングの保持、矛盾する統計は両論併記、日付付与による時系列誤解の防止。 (Lv0)">D5-6</span></div>
+  </div>
+
+  <footer>
+    <a href="https://claude.ai/code/artifact/90ef0de5-d201-437b-92c6-809e421edcd1">📝 模擬クイズ</a> · <a href="https://notebooklm.google.com/notebook/17a20946-16ab-4391-8c65-49ed42145e0a">🎧 NotebookLM</a><br>
+    最終記録反映: 2026-07-05 · /record で結果を記録すると自動更新
+  </footer>
+</div>
+<script>
+const D = {"deadline": "2026-08-04", "study_dates": ["2026-07-05"]};
+const dayMs = 86400000;
+const toDate = (s) => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
+const pad = (n) => String(n).padStart(2, "0");
+const now = new Date();
+const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+const todayStr = today.getFullYear() + "-" + pad(today.getMonth()+1) + "-" + pad(today.getDate());
+
+// 今日の日付表示（ビルド日でなく閲覧日）
+document.getElementById("today-label").textContent = todayStr;
+
+// カウントダウン（閲覧時点で再計算）
+const left = Math.round((toDate(D.deadline) - today) / dayMs);
+document.getElementById("days-left").textContent = left;
+
+// 連続学習日数（study_dates から閲覧日基準で計算）
+const days = new Set(D.study_dates);
+let streak = 0;
+let cur = days.has(todayStr) ? today : new Date(today - dayMs);
+while (true) {
+  const s = cur.getFullYear() + "-" + pad(cur.getMonth()+1) + "-" + pad(cur.getDate());
+  if (!days.has(s)) break;
+  streak += 1;
+  cur = new Date(cur - dayMs);
+}
+document.getElementById("streak").textContent = streak;
+
+// 復習キュー: 閲覧日基準で「今日期日」を判定
+let dueCount = 0;
+for (const item of document.querySelectorAll(".due-item[data-date]")) {
+  const d = item.dataset.date;
+  const badge = item.querySelector(".due-badge");
+  if (d <= todayStr) {
+    item.classList.add("due-now");
+    badge.textContent = "期日到来";
+    dueCount += 1;
+  } else {
+    badge.textContent = "予定 " + d.slice(5);
+  }
+}
+document.getElementById("due-count").textContent = dueCount;
+</script>
