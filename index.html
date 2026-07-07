@@ -1,3 +1,8 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CCA-F 進捗ダッシュボード</title>
 <style>
 
@@ -98,6 +103,8 @@ button:focus-visible, a:focus-visible { outline:2px solid var(--accent); outline
 footer { color:var(--sub); font-size:12px; text-align:center; }
 footer a { color:var(--accent); }
 </style>
+</head>
+<body>
 <div class="wrap">
   <div>
     <span class="eyebrow">CCA-F Study Dashboard</span>
@@ -226,3 +233,5 @@ for (const item of document.querySelectorAll(".due-item[data-date]")) {
 }
 document.getElementById("due-count").textContent = dueCount;
 </script>
+</body>
+</html>
