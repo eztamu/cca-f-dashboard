@@ -137,9 +137,11 @@ if (idsParam && QUESTIONS !== QUESTIONS_DEFAULT) {
   const doms = [...new Set(QUESTIONS.map(q => q.id.split("-")[0]))].sort().join("+");
   $("setlabel").textContent = "CCA-F Practice · " + doms + " · " + QUESTIONS.length + "問";
 }
-// 選択肢はセッションごとにシャッフルする。同じ問題を繰り返し解いても「2問目はB」と
-// いう位置記憶で正解できないようにするため（本番は当然この順序ではない）。
-// 表示位置の記号(POS)と、問題データ上の元の記号(order[i])を分けて扱う。
+// 選択肢の「並び順」だけをセッションごとにシャッフルする（ラベルA〜Dは元の記号のまま表示）。
+// ラベルまで表示位置基準に振り直すと、解説文(explanation_ja)が元の記号を前提に
+// 「Bが正解で…」と書かれているため画面表示と解説が食い違ってしまう（2026-08-21〜24で発覚）。
+// ラベルは元の記号のまま・位置だけ変えることで、解説との整合を保ちつつ「2問目はいつも
+// 同じ位置」という位置記憶だけを防ぐ。
 const POS = ["A","B","C","D"];
 function orderFor(q) {
   if (!q.__order) {
@@ -152,7 +154,6 @@ function orderFor(q) {
   }
   return q.__order;
 }
-function shownLetter(q) { return POS[orderFor(q).indexOf(q.answer)]; }
 function render() {
   const q = QUESTIONS[idx];
   const order = orderFor(q);
@@ -166,7 +167,7 @@ function render() {
   order.forEach((key, i) => {
     const b = document.createElement("button");
     b.className = "choice"; b.dataset.key = key;
-    const k = document.createElement("span"); k.className = "key"; k.textContent = POS[i];
+    const k = document.createElement("span"); k.className = "key"; k.textContent = key;
     const t = document.createElement("span"); t.textContent = q.choices[key];
     b.append(k, t); b.addEventListener("click", () => answer(key));
     box.appendChild(b);
@@ -176,7 +177,7 @@ function render() {
   const jac = $("jachoices"); jac.innerHTML = "";
   order.forEach((key, i) => {  // 日本語訳も英語と同じ並びに合わせる
     const p = document.createElement("p"); p.className = "jac";
-    const b = document.createElement("b"); b.textContent = POS[i] + ". ";
+    const b = document.createElement("b"); b.textContent = key + ". ";
     p.append(b, document.createTextNode((q.choices_ja || {})[key] || ""));
     jac.appendChild(p);
   });
@@ -197,7 +198,7 @@ function answer(key) {
     else if (b.dataset.key === key && !correct) b.classList.add("wrong");
   }
   const v = $("verdict");
-  v.textContent = correct ? "✓ Correct" : "✗ Incorrect — correct answer: " + shownLetter(q);
+  v.textContent = correct ? "✓ Correct" : "✗ Incorrect — correct answer: " + q.answer;
   v.className = "verdict " + (correct ? "ok" : "ng");
   $("expl").textContent = q.explanation_ja;
   const a = $("srclink"); a.href = q.source; a.textContent = q.source;
