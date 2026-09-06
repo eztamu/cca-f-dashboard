@@ -59,6 +59,10 @@ button:focus-visible, a:focus-visible { outline:2px solid var(--accent); outline
 .progressbar { height:6px; background:var(--line); border-radius:999px; overflow:hidden; }
 .progressbar > div { height:100%; background:var(--accent); border-radius:999px; transition:width .2s; }
 .topline { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.timer { color:var(--sub); }
+.timer.over { color:var(--ng); }
+.pace { font-size:13px; color:var(--sub); margin:4px 0 12px; }
+.pace b { color:var(--ink); }
 .score { font-size:40px; font-weight:750; }
 .qr { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13px; background:var(--surface);
   border:1px dashed var(--line); border-radius:8px; padding:10px; word-break:break-all; user-select:all; }
@@ -84,6 +88,7 @@ button:focus-visible, a:focus-visible { outline:2px solid var(--accent); outline
   <div>
     <div class="topline">
       <span class="eyebrow" id="setlabel">CCA-F Practice · D1+D4+D5 · 10問</span>
+      <span class="eyebrow num timer" id="timer">0:00</span>
       <span class="eyebrow num" id="counter"></span>
     </div>
     <div class="progressbar" aria-hidden="true"><div id="pbar" style="width:0%"></div></div>
@@ -108,6 +113,7 @@ button:focus-visible, a:focus-visible { outline:2px solid var(--accent); outline
   <div id="final" class="card hidden">
     <span class="eyebrow">Result</span>
     <div class="score num" id="scoreline"></div>
+    <p class="pace" id="paceline"></p>
     <div class="reslist" id="reslist"></div>
     <a id="formbtn" class="formbtn hidden" target="_blank" rel="noopener">📮 結果を送信して記録</a>
     <p style="margin:16px 0 6px; font-weight:650;">結果コード（手動記録用・コピーして Claude に貼り付け）</p>
@@ -133,6 +139,26 @@ if (idsParam) {
 }
 let idx = 0; const results = [];
 const $ = (id) => document.getElementById(id);
+// 本番は60問120分＝1問あたり約2分。頭の中で日本語に訳してから解く余裕はないため、
+// 経過時間を常時出して「英語のまま2分で判断する」ペースを体に入れる（2026-09-06追加）。
+const PACE_SEC = 120;
+let qStart = 0, tickId = null;
+const qTimes = [];
+const mmss = (s) => Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(2, "0");
+function tick() {
+  const s = (Date.now() - qStart) / 1000;
+  $("timer").textContent = mmss(s);
+  $("timer").classList.toggle("over", s > PACE_SEC);
+}
+function startTimer() {
+  qStart = Date.now();
+  if (tickId) clearInterval(tickId);
+  tick(); tickId = setInterval(tick, 1000);
+}
+function stopTimer() {
+  if (tickId) { clearInterval(tickId); tickId = null; }
+  return (Date.now() - qStart) / 1000;
+}
 if (idsParam && QUESTIONS !== QUESTIONS_DEFAULT) {
   const doms = [...new Set(QUESTIONS.map(q => q.id.split("-")[0]))].sort().join("+");
   $("setlabel").textContent = "CCA-F Practice · " + doms + " · " + QUESTIONS.length + "問";
@@ -183,6 +209,7 @@ function render() {
   });
   $("jabox").classList.add("hidden");
   $("jabtn").textContent = "日本語訳を表示";
+  startTimer();
 }
 $("jabtn").addEventListener("click", () => {
   const shown = $("jabox").classList.toggle("hidden") === false;
@@ -191,6 +218,8 @@ $("jabtn").addEventListener("click", () => {
 function answer(key) {
   const q = QUESTIONS[idx];
   const correct = key === q.answer;
+  const secs = stopTimer();
+  qTimes.push(secs);
   results.push({ id: q.id, correct });
   for (const b of document.querySelectorAll(".choice")) {
     b.disabled = true;
@@ -198,7 +227,8 @@ function answer(key) {
     else if (b.dataset.key === key && !correct) b.classList.add("wrong");
   }
   const v = $("verdict");
-  v.textContent = correct ? "✓ Correct" : "✗ Incorrect — correct answer: " + q.answer;
+  const pace = " · " + mmss(secs) + (secs > PACE_SEC ? " ⏱ 本番ペース超過（目安2:00）" : "");
+  v.textContent = (correct ? "✓ Correct" : "✗ Incorrect — correct answer: " + q.answer) + pace;
   v.className = "verdict " + (correct ? "ok" : "ng");
   $("expl").textContent = q.explanation_ja;
   const a = $("srclink"); a.href = q.source; a.textContent = q.source;
@@ -212,9 +242,18 @@ $("nextbtn").addEventListener("click", () => {
 });
 function finish() {
   $("quiz").classList.add("hidden");
+  stopTimer();
+  $("timer").textContent = "";
   $("pbar").style.width = "100%";
   const ok = results.filter(r => r.correct).length;
   $("scoreline").textContent = ok + " / " + results.length;
+  if (qTimes.length) {
+    const avg = qTimes.reduce((a, b) => a + b, 0) / qTimes.length;
+    const over = qTimes.filter(s => s > PACE_SEC).length;
+    $("paceline").innerHTML = "平均 <b>" + mmss(avg) + "</b> / 問（本番の目安 2:00）· 超過 <b>"
+      + over + "</b> 問"
+      + (avg > PACE_SEC ? " — 英語のまま読む練習が必要" : " — 本番ペースを維持できています");
+  }
   const list = $("reslist");
   for (const r of results) {
     const q = QUESTIONS.find(x => x.id === r.id);
