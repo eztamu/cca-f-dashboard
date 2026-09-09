@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CCA-F 単語テスト</title>
+<style>
+
+:root {
+  --surface:#F5F6F9; --card:#FFFFFF; --ink:#1C2536; --sub:#5C6678; --line:#E3E6EE;
+  --accent:#3B55C4; --accent-soft:#E7EBFA; --ok:#1E7F4F; --ok-soft:#E2F2E9;
+  --ng:#C2403B; --ng-soft:#F9E7E6; --due:#B07C1F; --due-soft:#F7EEDC;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --surface:#12161F; --card:#1B2230; --ink:#E7EBF4; --sub:#98A2B6; --line:#2A3245;
+  --accent:#5D74D8; --accent-soft:#232C4A; --ok:#3A9A6D; --ok-soft:#1B3128;
+  --ng:#C95F5B; --ng-soft:#3A2323; --due:#A9843C; --due-soft:#332B18;
+} }
+:root[data-theme="light"] {
+  --surface:#F5F6F9; --card:#FFFFFF; --ink:#1C2536; --sub:#5C6678; --line:#E3E6EE;
+  --accent:#3B55C4; --accent-soft:#E7EBFA; --ok:#1E7F4F; --ok-soft:#E2F2E9;
+  --ng:#C2403B; --ng-soft:#F9E7E6; --due:#B07C1F; --due-soft:#F7EEDC;
+}
+:root[data-theme="dark"] {
+  --surface:#12161F; --card:#1B2230; --ink:#E7EBF4; --sub:#98A2B6; --line:#2A3245;
+  --accent:#5D74D8; --accent-soft:#232C4A; --ok:#3A9A6D; --ok-soft:#1B3128;
+  --ng:#C95F5B; --ng-soft:#3A2323; --due:#A9843C; --due-soft:#332B18;
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--surface); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Noto Sans JP",sans-serif;
+  line-height:1.6; -webkit-font-smoothing:antialiased; }
+.wrap { max-width:660px; margin:0 auto; padding:16px 16px 48px; display:flex; flex-direction:column; gap:14px; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; }
+.eyebrow { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--sub); font-weight:600; }
+.chip { display:inline-block; font-size:12px; font-weight:600; padding:2px 10px; border-radius:999px;
+  background:var(--accent-soft); color:var(--accent); }
+button { font:inherit; cursor:pointer; }
+button:focus-visible, a:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+@media (prefers-reduced-motion: reduce) { * { transition:none !important; animation:none !important; } }
+.num { font-variant-numeric:tabular-nums; }
+
+.card2 { min-height:160px; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; gap:10px; }
+.word { font-size:28px; font-weight:750; }
+.ja { font-size:18px; color:var(--sub); }
+.flipbtn { background:var(--card); color:var(--accent); border:1.5px solid var(--accent); border-radius:10px; padding:12px; font-weight:700; width:100%; }
+.judge { display:flex; gap:10px; width:100%; }
+.judge button { flex:1; border:none; border-radius:10px; padding:13px; font-weight:700; color:#fff; }
+.judge .ok { background:var(--ok); }
+.judge .ng { background:var(--ng); }
+.qr { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13px; background:var(--surface);
+  border:1px dashed var(--line); border-radius:8px; padding:10px; word-break:break-all; user-select:all; }
+.copybtn { background:var(--card); color:var(--accent); border:1.5px solid var(--accent);
+  border-radius:10px; padding:11px; font-weight:700; width:100%; margin-top:8px; }
+.formbtn { display:block; text-align:center; text-decoration:none; background:var(--accent); color:#fff;
+  border:none; border-radius:10px; padding:13px; font-weight:700; width:100%; margin-top:8px; }
+.hidden { display:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topline">
+    <span class="eyebrow">CCA-F 単語テスト</span>
+    <span class="eyebrow num" id="counter"></span>
+  </div>
+  <div id="quiz" class="card card2">
+    <div class="word" id="word"></div>
+    <div class="ja hidden" id="ja"></div>
+    <button class="flipbtn" id="flipbtn">答えを見る</button>
+    <div class="judge hidden" id="judge">
+      <button class="ng" id="ngbtn">✗ まだ</button>
+      <button class="ok" id="okbtn">✓ 覚えた</button>
+    </div>
+  </div>
+  <div id="empty" class="card hidden">
+    <span class="eyebrow">単語テスト</span>
+    <p class="empty">今日復習予定の単語はありません。クイズ画面で単語をクリックしてストックしましょう。</p>
+  </div>
+  <div id="final" class="card hidden">
+    <span class="eyebrow">Result</span>
+    <div class="score num" id="scoreline"></div>
+    <a id="formbtn" class="formbtn hidden" target="_blank" rel="noopener">📮 結果を送信して記録</a>
+    <p style="margin:16px 0 6px; font-weight:650;">結果コード（手動記録用）</p>
+    <div class="qr" id="qrcode"></div>
+    <button class="copybtn" id="copybtn">結果コードをコピー</button>
+  </div>
+</div>
+<script>
+const WORDS_ALL = [];
+const FORM_BASE = "https://docs.google.com/forms/d/e/1FAIpQLSdOZyIlke2oBJDE2SJKgNkS6F0oVG3fkgMq0DW8J_eFHyxX-w/viewform";
+const FORM_ENTRY = "entry.1699881175";
+const $ = (id) => document.getElementById(id);
+const _today = new Date(), _pad = (n) => String(n).padStart(2, "0");
+const todayStr = _today.getFullYear() + "-" + _pad(_today.getMonth() + 1) + "-" + _pad(_today.getDate());
+const WORDS = WORDS_ALL.filter(w => w.next_review <= todayStr);
+let idx = 0; const results = [];
+function render() {
+  if (!WORDS.length) { $("quiz").classList.add("hidden"); $("empty").classList.remove("hidden"); return; }
+  const w = WORDS[idx];
+  $("counter").textContent = (idx + 1) + " / " + WORDS.length;
+  $("word").textContent = w.word;
+  $("ja").textContent = w.ja;
+  $("ja").classList.add("hidden");
+  $("judge").classList.add("hidden");
+  $("flipbtn").classList.remove("hidden");
+}
+$("flipbtn").addEventListener("click", () => {
+  $("ja").classList.remove("hidden");
+  $("judge").classList.remove("hidden");
+  $("flipbtn").classList.add("hidden");
+});
+function judge(correct) {
+  results.push({ word: WORDS[idx].word, correct });
+  idx += 1;
+  if (idx < WORDS.length) { render(); } else { finish(); }
+}
+$("okbtn").addEventListener("click", () => judge(true));
+$("ngbtn").addEventListener("click", () => judge(false));
+function finish() {
+  $("quiz").classList.add("hidden");
+  const ok = results.filter(r => r.correct).length;
+  $("scoreline").textContent = ok + " / " + results.length;
+  const d = new Date(), pad = (n) => String(n).padStart(2, "0");
+  const today = d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  const code = "VOCABTEST|" + today + "|" + results.map(r => r.word + ":" + (r.correct ? "o" : "x")).join(",");
+  $("qrcode").textContent = code;
+  if (FORM_BASE && FORM_ENTRY) {
+    const sep = FORM_BASE.includes("?") ? "&" : "?";
+    $("formbtn").href = FORM_BASE + sep + FORM_ENTRY + "=" + encodeURIComponent(code);
+    $("formbtn").classList.remove("hidden");
+  }
+  $("copybtn").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(code); $("copybtn").textContent = "コピーしました ✓"; }
+    catch { const sel = window.getSelection(), rg = document.createRange();
+      rg.selectNodeContents($("qrcode")); sel.removeAllRanges(); sel.addRange(rg);
+      $("copybtn").textContent = "選択しました — 長押しでコピー"; }
+  });
+  $("final").classList.remove("hidden");
+}
+render();
+</script>
+</body>
+</html>
