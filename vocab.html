@@ -93,11 +93,16 @@ const $ = (id) => document.getElementById(id);
 const _today = new Date(), _pad = (n) => String(n).padStart(2, "0");
 const todayStr = _today.getFullYear() + "-" + _pad(_today.getMonth() + 1) + "-" + _pad(_today.getDate());
 const WORDS = WORDS_ALL.filter(w => w.next_review <= todayStr);
-let idx = 0; const results = [];
+// 「✗ まだ」を選んだ単語はキューの末尾に戻し、同じセッション内で覚えるまで出し続ける
+// （間隔反復で翌日以降に持ち越されるのは、そのセッションを終えた時点でも「まだ」だった
+// 単語だけにする。2026-09-10: 一度「まだ」を選んだだけで翌日まで出てこなくなるのは
+// 単語暗記の使用感として不自然、というフィードバックを受けて変更）。
+const queue = WORDS.slice();
+const results = new Map();  // word -> 最後に回答した正誤（同じ単語を複数回出す場合は最新の回答を採用）
 function render() {
-  if (!WORDS.length) { $("quiz").classList.add("hidden"); $("empty").classList.remove("hidden"); return; }
-  const w = WORDS[idx];
-  $("counter").textContent = (idx + 1) + " / " + WORDS.length;
+  if (!queue.length) { $("quiz").classList.add("hidden"); $("empty").classList.remove("hidden"); return; }
+  const w = queue[0];
+  $("counter").textContent = "残り " + queue.length + "語（総 " + WORDS.length + "語）";
   $("word").textContent = w.word;
   $("ja").textContent = w.ja;
   $("ja").classList.add("hidden");
@@ -110,19 +115,21 @@ $("flipbtn").addEventListener("click", () => {
   $("flipbtn").classList.add("hidden");
 });
 function judge(correct) {
-  results.push({ word: WORDS[idx].word, correct });
-  idx += 1;
-  if (idx < WORDS.length) { render(); } else { finish(); }
+  const w = queue.shift();
+  results.set(w.word, correct);
+  if (!correct) queue.push(w);  // まだ覚えていない単語はキューの末尾に戻して再出題
+  if (queue.length) { render(); } else { finish(); }
 }
 $("okbtn").addEventListener("click", () => judge(true));
 $("ngbtn").addEventListener("click", () => judge(false));
 function finish() {
   $("quiz").classList.add("hidden");
-  const ok = results.filter(r => r.correct).length;
-  $("scoreline").textContent = ok + " / " + results.length;
+  const entries = [...results.entries()];
+  const ok = entries.filter(([, correct]) => correct).length;
+  $("scoreline").textContent = ok + " / " + entries.length;
   const d = new Date(), pad = (n) => String(n).padStart(2, "0");
   const today = d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
-  const code = "VOCABTEST|" + today + "|" + results.map(r => r.word + ":" + (r.correct ? "o" : "x")).join(",");
+  const code = "VOCABTEST|" + today + "|" + entries.map(([word, correct]) => word + ":" + (correct ? "o" : "x")).join(",");
   $("qrcode").textContent = code;
   if (FORM_BASE && FORM_ENTRY) {
     const sep = FORM_BASE.includes("?") ? "&" : "?";
