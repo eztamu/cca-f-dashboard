@@ -83,6 +83,10 @@ button:focus-visible, a:focus-visible { outline:2px solid var(--accent); outline
 .jabox .jaq { color:var(--ink); margin:0 0 8px; }
 .jabox .jac { margin:2px 0; }
 .jabox .jac b { color:var(--ink); }
+.pausebar { display:flex; gap:8px; margin-top:14px; }
+.pausebtn { flex:1; background:var(--card); color:var(--sub); border:1.5px solid var(--line);
+  border-radius:10px; padding:10px 6px; font-weight:700; font-size:13px; }
+.pausebtn:hover { border-color:var(--accent); color:var(--accent); }
 .w { cursor:pointer; border-bottom:1px dotted var(--accent); }
 .w.stocked { border-bottom-style:solid; background:var(--accent-soft); }
 .wpop { position:fixed; left:50%; bottom:16px; transform:translateX(-50%); max-width:calc(100% - 32px);
@@ -106,6 +110,18 @@ button:focus-visible, a:focus-visible { outline:2px solid var(--accent); outline
     </div>
     <div class="progressbar" aria-hidden="true"><div id="pbar" style="width:0%"></div></div>
   </div>
+  <div id="resumebox" class="card hidden">
+    <span class="eyebrow">前回の続き</span>
+    <p id="resumeinfo" style="margin:8px 0"></p>
+    <button class="next" id="resumebtn">▶ 続きから再開</button>
+    <button class="pausebtn" id="resumerecbtn" style="width:100%;margin-top:8px">解いた分だけ記録して終了</button>
+    <button class="pausebtn" id="restartbtn" style="width:100%;margin-top:8px">最初からやり直す</button>
+  </div>
+  <div id="pausedbox" class="card hidden">
+    <span class="eyebrow">保存しました</span>
+    <p id="pausedinfo" style="margin:8px 0"></p>
+    <button class="next" id="continuebtn">▶ 今すぐ再開</button>
+  </div>
   <div id="quiz" class="card">
     <span class="chip" id="domchip"></span>
     <p class="scenario" id="scenario"></p>
@@ -122,6 +138,10 @@ button:focus-visible, a:focus-visible { outline:2px solid var(--accent); outline
       <p class="verdict" id="verdict"></p>
       <div class="expl"><span id="expl"></span><br><a id="srclink" target="_blank" rel="noopener"></a></div>
       <button class="next" id="nextbtn" style="margin-top:14px">次の問題 →</button>
+    </div>
+    <div class="pausebar">
+      <button class="pausebtn" id="pausebtn">⏸ 中断して保存</button>
+      <button class="pausebtn" id="earlybtn">📮 ここまでを記録して終了</button>
     </div>
   </div>
   <div id="final" class="card hidden">
@@ -334,6 +354,7 @@ $("nextbtn").addEventListener("click", () => {
   if (idx < QUESTIONS.length) { render(); window.scrollTo({top:0}); } else { finish(); }
 });
 function finish() {
+  clearProgress();
   $("quiz").classList.add("hidden");
   stopTimer();
   $("timer").textContent = "";
@@ -391,7 +412,55 @@ function finish() {
   });
   $("final").classList.remove("hidden");
 }
-render();
+
+// 中断・再開: 問題セット(?ids=の組み合わせ)ごとの進捗をlocalStorageに保存する。
+// 保存先はその端末のブラウザだけ（別端末には引き継がれない）。解答前の1問の途中経過は保存しない。
+const PROGRESS_KEY = "cca_quiz_progress";
+const setKey = QUESTIONS.map(q => q.id).join(",");
+function readProgressMap() { try { return JSON.parse(localStorage.getItem(PROGRESS_KEY) || "{}"); } catch { return {}; } }
+function writeProgressMap(m) { try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(m)); } catch {} }
+function clearProgress() { const m = readProgressMap(); delete m[setKey]; writeProgressMap(m); }
+function saveProgress(nextIdx) {
+  const m = readProgressMap();
+  m[setKey] = { idx: nextIdx, results: results.slice(), qTimes: qTimes.slice(), savedAt: new Date().toISOString() };
+  writeProgressMap(m);
+}
+function applySaved(s) { idx = s.idx; results.push(...s.results); qTimes.push(...s.qTimes); }
+function startQuiz() {
+  $("resumebox").classList.add("hidden"); $("pausedbox").classList.add("hidden");
+  $("quiz").classList.remove("hidden");
+  render(); window.scrollTo({ top: 0 });
+}
+$("pausebtn").addEventListener("click", () => {
+  const answered = !$("feedback").classList.contains("hidden");
+  const nextIdx = answered ? idx + 1 : idx;
+  if (nextIdx >= QUESTIONS.length) { finish(); return; }  // 最終問題まで解き終えているなら結果画面へ
+  stopTimer();
+  idx = nextIdx;
+  saveProgress(nextIdx);
+  $("wpop").classList.add("hidden");
+  $("quiz").classList.add("hidden");
+  $("pausedinfo").textContent = "ここまで " + results.length + "問回答済み。次は " + (nextIdx + 1) + "/" + QUESTIONS.length
+    + "問目です。このURLを開き直すと続きから再開できます。";
+  $("pausedbox").classList.remove("hidden");
+});
+$("continuebtn").addEventListener("click", startQuiz);
+$("earlybtn").addEventListener("click", () => {
+  if (!results.length) { $("earlybtn").textContent = "まだ1問も回答していません"; return; }
+  finish();
+});
+(function boot() {
+  const s = readProgressMap()[setKey];
+  if (!s || !s.results || !s.results.length || s.idx >= QUESTIONS.length) { render(); return; }
+  const d = new Date(s.savedAt);
+  $("resumeinfo").textContent = (d.getMonth() + 1) + "/" + d.getDate() + " に中断: " + s.results.length
+    + "問回答済み・次は " + (s.idx + 1) + "/" + QUESTIONS.length + "問目";
+  $("quiz").classList.add("hidden");
+  $("resumebox").classList.remove("hidden");
+  $("resumebtn").addEventListener("click", () => { applySaved(s); startQuiz(); });
+  $("resumerecbtn").addEventListener("click", () => { applySaved(s); $("resumebox").classList.add("hidden"); finish(); });
+  $("restartbtn").addEventListener("click", () => { clearProgress(); startQuiz(); });
+})();
 </script>
 </body>
 </html>
